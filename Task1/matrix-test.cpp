@@ -9,32 +9,38 @@ using namespace std;
 vector<double> MatrixMultiply(int l, int m, int n,
         vector<double> A, vector<double> B);
 vector<double> MatrixMultiplyParallel(int l, int m, int n,
-        vector<double> A, vector<double> B);
+        int P, vector<double> A, vector<double> B);
 void ShowMatrix(int n, int m, vector<double> A);
 double Analyse(int P, int N);
 
 int main() {
     srand(time(nullptr));
 
-    vector<int> P {1, 2, 4, 8, 16, 24, 32, 40, 48};
-    vector<int> N {500, 1000, 1500};
+    int l = 100, m = 100, n = 100;
 
-    for (int i = 0; i < P.size(); i++) {
-        for (int j = 0; j < N.size(); j++) {
-            double time = Analyse(P[i], N[j]);
-            printf("%f ", time);
-        }
-        printf("\n");
-    }
-    printf("\n");
+    vector<double> A(l * m);
+    vector<double> B(m * n);
 
-    // ShowMatrix(l, m, A);
-    // ShowMatrix(m, n, B);
+    for (int j = 0; j < m; j++)
+        for (int i = 0; i < l; i++)
+            A[i + j * l] = (double)std::rand() / (double)RAND_MAX;
+
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < m; i++)
+            B[i + j * m] = (double)std::rand() / (double)RAND_MAX;
+
+    double start = omp_get_wtime();
+    vector<double> C  = MatrixMultiply(l, m, n, A, B);
+    double t1 = omp_get_wtime() - start;
+
+    start = omp_get_wtime();
+    vector<double> C1 = MatrixMultiplyParallel(l, m, n, 8, A, B);
+    double t2 = omp_get_wtime() - start;
+
+    printf("Sequential: time = %f\n", t1);
     // ShowMatrix(l, n, C);
+    printf("Parallel: time = %f\n", t2);
     // ShowMatrix(l, n, C1);
-
-    // printf("Time Sequential: %f\n", time1);
-    // printf("Time Parallel:   %f\n", time2);
 
     return 0;
 }
@@ -56,8 +62,7 @@ vector<double> MatrixMultiply(int l, int m, int n,
 }
 
 vector<double> MatrixMultiplyParallel(int l, int m, int n,
-        int P,
-        vector<double> A, vector<double> B) {
+        int P, vector<double> A, vector<double> B) {
 
     vector<double> C(l * n, 0);
 
@@ -65,8 +70,8 @@ vector<double> MatrixMultiplyParallel(int l, int m, int n,
     for (int j = 0; j < n; j++) {
         for (int i = 0; i < l; i++) {
             for (int k = 0; k < m; k++) {
-                // if (j == 0 && i == 0 && k == 0)
-                //     printf("%d\n", omp_get_num_threads());
+                if (j == 0 && i == 0 && k == 0)
+                    printf("nThreads: %d\n", omp_get_num_threads());
                 C[i + j * l] += A[i + k * l] * B[k + j * m];
             }
         }
@@ -82,28 +87,4 @@ void ShowMatrix(int n, int m, vector<double> A) {
         printf("\n");
     }
     printf("\n");
-}
-
-double Analyse(int P, int N) {
-    omp_set_dynamic(0);
-    omp_set_num_threads(P);
-
-    int l = N, m = N, n = N;
-    vector<double> A(l * m);
-    vector<double> B(m * n);
-
-    for (int j = 0; j < m; j++)
-        for (int i = 0; i < l; i++)
-            A[i + j * l] = (double)std::rand() / (double)RAND_MAX;
-
-    for (int j = 0; j < n; j++)
-        for (int i = 0; i < m; i++)
-            B[i + j * m] = (double)std::rand() / (double)RAND_MAX;
-
-    double start = omp_get_wtime();
-    vector<double> C = MatrixMultiplyParallel(l, m, n, P, A, B);
-    double end = omp_get_wtime();
-
-    return (end - start);
-    return 0;
 }
